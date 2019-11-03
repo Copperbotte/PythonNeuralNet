@@ -22,6 +22,9 @@ def makeRandNNet(n1, n2):
         return rand.random()
     return _makeNNet(n1, n2, randFunc)
 
+def buildNNet(func, nodes):
+    return [func(a,b) for a,b in zip(nodes[:-1], nodes[1:])]
+
 #sigmoids
 def sigTanh(x):
     return np.tanh(x)
@@ -29,31 +32,28 @@ def sigTanh(x):
 def dsigTanh(sig):
     return 1.0 - sig**2
 
+getdSig = {sigTanh: dsigTanh}
+
 #States is the same length as the first node in Nodes.
 #Sigmoid is performed before the transform rather than after,
 #   to accomodate for non-bounded neural net outputs.
 def forwardprop(nnet, states):
     res = [states]
-    for W in nnet:
-        sig = [1.0] + list(map(sigTanh, res[-1]))#sigmoid input
-        N1 = np.array([sig]).transpose()        #build vector
-        N2 = W @ N1                             #mul
-        res.append(N2.transpose().tolist()[0])  #un-build vector
-    return res
-
-def backprop(nnet, nodes, states, expect):
-    #forwardprop
-    res = [states]
     sigs = []
     for W in nnet:
-        sig = [1.0] + list(map(sigTanh, res[-1]))#sigmoid input
+        sig = [1.0] + list(map(sigmoid, res[-1]))#sigmoid input
         N1 = np.array([sig]).transpose()        #build vector
         N2 = W @ N1                             #mul
         res.append(N2.transpose().tolist()[0])  #un-build vector
         sigs.append(sig)
+    return res, sigs
 
+def backprop(nnet, nodes, states, expect):
+    #forwardprop
+    res, sigs = forwardprop(nnet, states)
+    
     #backprop
-    delta = [makeZeroNNet(a,b) for a,b in zip(Nodes[:-1], Nodes[1:])]
+    delta = buildNNet(makeZeroNNet, Nodes)
 
     dN = [r-e for r,e in zip(res[-1], expect)]  #delta node
     error = sum([e**2 / 4.0 for e in dN])       #numerical error
@@ -63,6 +63,7 @@ def backprop(nnet, nodes, states, expect):
         n = len(nnet) - N - 1 #reverse order
         #find weights
         #deltaNNet is the unique combo of dN2 * sigma(N1)
+        # ----- I feel like this can be simplified to a matrix mul -----
         for y in range(len(delta[n])):
             for x in range(len(delta[n][0])):
                 delta[n][y][x] += sigs[n][x] * dNode[y][0]
@@ -71,16 +72,19 @@ def backprop(nnet, nodes, states, expect):
         dNode = nnet[n].transpose() @ dNode #weight derivative
         dNode = dNode[1:]                   #strip bias
         #sigmoid derivative
-        dNode *= np.array([list(map(dsigTanh, sigs[n][1:]))]).transpose()
+        dNode *= np.array([list(map(getdSig[sigmoid], sigs[n][1:]))]).transpose()
     
     return res, error, delta
 
 #Nodes includes start and end nodes
 Nodes = [2, 2, 1]
 
+#Define sigmoid used
+sigmoid = sigTanh
+
 #NNet includes a hidden bias node from its source as the 1st element.
 #Each matrix transforms between two Nodes elements.
-NNet = [makeRandNNet(a,b) for a,b in zip(Nodes[:-1], Nodes[1:])]
+NNet = buildNNet(makeRandNNet, Nodes)
 
 print("Nodes")
 print(Nodes)
