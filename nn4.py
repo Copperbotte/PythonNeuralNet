@@ -63,11 +63,8 @@ def backprop(nnet, nodes, states, expect):
         n = len(nnet) - N - 1 #reverse order
         #find weights
         #deltaNNet is the unique combo of dN2 * sigma(N1)
-        # ----- I feel like this can be simplified to a matrix mul -----
-        for y in range(len(delta[n])):
-            for x in range(len(delta[n][0])):
-                delta[n][y][x] += sigs[n][x] * dNode[y][0]
-
+        delta[n] += dNode @ np.array([sigs[n]])
+        
         #backprop to next node
         dNode = nnet[n].transpose() @ dNode #weight derivative
         dNode = dNode[1:]                   #strip bias
