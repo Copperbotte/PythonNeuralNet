@@ -1,4 +1,3 @@
-
 import numpy as np
 import random as rand
 
@@ -37,7 +36,7 @@ getdSig = {sigTanh: dsigTanh}
 #States is the same length as the first node in Nodes.
 #Sigmoid is performed before the transform rather than after,
 #   to accomodate for non-bounded neural net outputs.
-def forwardprop(nnet, states):
+def forwardprop(nnet, states, sigmoid):
     res = [states]
     sigs = []
     for W in nnet:
@@ -48,12 +47,13 @@ def forwardprop(nnet, states):
         sigs.append(sig)
     return res, sigs
 
-def backprop(nnet, nodes, states, expect):
+def backprop(nnet, nodes, states, expect, sigmoid):
+    global getdSig
     #forwardprop
-    res, sigs = forwardprop(nnet, states)
+    res, sigs = forwardprop(nnet, states, sigmoid)
     
     #backprop
-    delta = buildNNet(makeZeroNNet, Nodes)
+    delta = buildNNet(makeZeroNNet, nodes)
 
     dN = [r-e for r,e in zip(res[-1], expect)]  #delta node
     error = sum([e**2 / 4.0 for e in dN])       #numerical error
@@ -73,27 +73,28 @@ def backprop(nnet, nodes, states, expect):
     
     return res, error, delta
 
-#Nodes includes start and end nodes
-Nodes = [2, 2, 1]
+if __name__ == "__main__":
+    #Nodes includes start and end nodes
+    Nodes = [2, 2, 1]
 
-#Define sigmoid used
-sigmoid = sigTanh
+    #Define sigmoid used
+    sigmoid = sigTanh
 
-#NNet includes a hidden bias node from its source as the 1st element.
-#Each matrix transforms between two Nodes elements.
-NNet = buildNNet(makeRandNNet, Nodes)
+    #NNet includes a hidden bias node from its source as the 1st element.
+    #Each matrix transforms between two Nodes elements.
+    NNet = buildNNet(makeRandNNet, Nodes)
 
-print("Nodes")
-print(Nodes)
-for n in NNet:
-    print(n)
-    print()
+    print("Nodes")
+    print(Nodes)
+    for n in NNet:
+        print(n)
+        print()
 
-for times in range(100):
-    Result, Error, Delta = backprop(NNet, Nodes, [1,1], [1])
-    print(times, Result[-1][0], Error)
-    for n in range(len(NNet)):
-        NNet[n] -= 0.5 * Delta[n]
+    for times in range(100):
+        Result, Error, Delta = backprop(NNet, Nodes, [1,1], [1], sigmoid)
+        print(times, Result[-1][0], Error)
+        for n in range(len(NNet)):
+            NNet[n] -= 0.5 * Delta[n]
 
 
     

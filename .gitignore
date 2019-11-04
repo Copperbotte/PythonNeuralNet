@@ -1,4 +1,5 @@
 .gitignore
+__pycache__/
 neural_net3_test1.py
 neural_net3_test1_v2.py
 neural_net3_test2.py
